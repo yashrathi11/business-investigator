@@ -31,7 +31,14 @@ def load_uploaded_file(file_path: str) -> pd.DataFrame:
         )
 
     if path.suffix.lower() == ".csv":
-        return pd.read_csv(path)
+        return pd.read_csv(
+            path,
+            dtype={
+                "StockCode": "category",
+                "Country": "category",
+            },
+            parse_dates=["InvoiceDate"],
+        )
 
     return load_raw_data(str(path))
 
