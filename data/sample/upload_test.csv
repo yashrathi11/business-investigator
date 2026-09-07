@@ -1,0 +1,4 @@
+Invoice,StockCode,Description,Quantity,InvoiceDate,Price,Customer ID,Country
+T001,P001,Test Product,2,2011-12-01 10:00:00,10.00,10001,United Kingdom
+T002,P002,Another Product,3,2011-12-01 11:00:00,20.00,10002,United Kingdom
+T003,P001,Test Product,1,2011-12-02 12:00:00,10.00,10001,United Kingdom

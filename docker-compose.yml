@@ -1,0 +1,14 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: business-investigator-api
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./data/processed:/app/data/processed
+      - ./data/uploads:/app/data/uploads
+    restart: unless-stopped

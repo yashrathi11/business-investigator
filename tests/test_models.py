@@ -16,6 +16,23 @@ from models.shap_explainer import (
 )
 
 
+FEATURE_COLUMNS = [
+    "day_of_week",
+    "day_of_month",
+    "month",
+    "year",
+    "revenue_lag_1",
+    "revenue_lag_7",
+    "revenue_lag_14",
+    "revenue_rolling_7",
+    "revenue_rolling_30",
+    "orders",
+    "customers",
+    "aov",
+    "repeat_customer_rate",
+]
+
+
 def create_sample_daily_metrics():
     dates = pd.date_range(
         start="2020-01-01",
@@ -66,16 +83,16 @@ def test_xgboost_forecasting():
         daily_metrics
     )
 
-    model, feature_columns = train_revenue_model(
+    model = train_revenue_model(
         forecasting_data
     )
 
     predictions = model.predict(
-        forecasting_data[feature_columns]
+        forecasting_data[FEATURE_COLUMNS]
     )
 
     assert len(predictions) == len(forecasting_data)
-    assert len(feature_columns) == 9
+    assert len(FEATURE_COLUMNS) == 13
     assert np.isfinite(predictions).all()
 
 
@@ -86,11 +103,11 @@ def test_shap_explainability():
         daily_metrics
     )
 
-    model, feature_columns = train_revenue_model(
+    model = train_revenue_model(
         forecasting_data
     )
 
-    X = forecasting_data[feature_columns]
+    X = forecasting_data[FEATURE_COLUMNS]
 
     explainer, shap_values = calculate_shap_values(
         model,
@@ -99,14 +116,14 @@ def test_shap_explainability():
 
     importance = calculate_feature_importance(
         shap_values,
-        feature_columns
+        FEATURE_COLUMNS
     )
 
     assert shap_values.shape == (
         len(X),
-        len(feature_columns)
+        len(FEATURE_COLUMNS)
     )
 
-    assert len(importance) == len(feature_columns)
+    assert len(importance) == len(FEATURE_COLUMNS)
 
     assert importance["importance"].notna().all()

@@ -1,6 +1,45 @@
+﻿# Python
 .venv/
 __pycache__/
-*.pyc
+*.py[cod]
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Environment / secrets
 .env
+.env.*
+!.env.example
+
+# Raw and generated datasets
 data/raw/
+data/uploads/
+data/processed/*.csv
+data/processed/*.xlsx
+data/processed/*.xls
+data/processed/datasets.json
+
+# Evaluation outputs
+evaluation/results/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Node / React
+dashboard/node_modules/
+dashboard/dist/
+
+# Build / cache
+dist/
+build/
+*.log
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp

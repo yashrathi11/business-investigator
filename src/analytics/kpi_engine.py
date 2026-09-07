@@ -186,7 +186,16 @@ def calculate_growth(current_value, previous_value):
 def calculate_daily_metrics(df):
     """
     Calculate daily business metrics.
+
+    Units sold is defined as net quantity:
+    positive sales quantity minus returned quantity.
     """
+    df = df.copy()
+
+    df["InvoiceDate"] = pd.to_datetime(
+        df["InvoiceDate"],
+        errors="coerce"
+    )
 
     daily = (
         df
@@ -197,10 +206,7 @@ def calculate_daily_metrics(df):
             revenue=("Revenue", "sum"),
             orders=("Invoice", "nunique"),
             customers=("Customer ID", "nunique"),
-            units_sold=(
-                "Quantity",
-                lambda x: x[x > 0].sum()
-            )
+            units_sold=("Quantity", "sum")
         )
         .reset_index()
     )

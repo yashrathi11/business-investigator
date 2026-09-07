@@ -1,0 +1,44 @@
+{
+  "evaluation": "controlled_anomaly_detection",
+  "method": {
+    "baseline_window": 30,
+    "z_threshold": 3.0,
+    "synthetic_shock": true
+  },
+  "scenario": {
+    "target_date": "2010-12-22",
+    "original_revenue": 6199.97,
+    "synthetic_revenue_injected": 100000.0
+  },
+  "detection": {
+    "target_detected": true,
+    "detected_anomaly_count": 16,
+    "detected_dates": [
+      "2010-03-23",
+      "2010-03-29",
+      "2010-06-17",
+      "2010-09-21",
+      "2010-09-27",
+      "2010-11-04",
+      "2010-11-15",
+      "2010-12-22",
+      "2011-03-29",
+      "2011-05-12",
+      "2011-08-04",
+      "2011-08-11",
+      "2011-09-15",
+      "2011-09-20",
+      "2011-11-14",
+      "2011-12-09"
+    ]
+  },
+  "metrics": {
+    "true_positive": 1,
+    "false_positive": 15,
+    "false_negative": 0,
+    "true_negative": 588,
+    "precision": 0.0625,
+    "recall": 1.0,
+    "false_positive_rate": 0.024875621890547265
+  }
+}
