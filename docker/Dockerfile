@@ -12,7 +12,6 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 COPY api /app/api
 COPY src /app/src
 COPY data /app/data
-COPY models /app/models
 
 RUN mkdir -p /app/data/uploads /app/data/processed
 
