@@ -76,6 +76,24 @@ app.add_middleware(
 UPLOAD_DIR = Path("data/uploads")
 PROCESSED_DIR = Path("data/processed")
 
+
+def _read_processed_dataset(path: Path, usecols=None):
+    """
+    Memory-efficient loader for processed transaction datasets.
+    """
+
+    dtype = {
+        "StockCode": "category",
+        "Country": "category",
+    }
+
+    return pd.read_csv(
+        path,
+        usecols=usecols,
+        dtype=dtype,
+        parse_dates=["InvoiceDate"],
+    )
+
 UPLOAD_DIR.mkdir(
     parents=True,
     exist_ok=True,
@@ -503,8 +521,15 @@ def get_anomalies(dataset_id: str):
         # Load processed transactions
         # ----------------------------------------------------
 
-        df = pd.read_csv(
-            processed_file
+        df = _read_processed_dataset(
+            processed_file,
+            usecols=[
+                "Invoice",
+                "InvoiceDate",
+                "Revenue",
+                "Quantity",
+                "Customer ID",
+            ],
         )
 
         # ----------------------------------------------------
@@ -605,14 +630,15 @@ def get_dataset_summary(dataset_id: str):
         # Load processed transactions
         # ----------------------------------------------------
 
-        df = pd.read_csv(
-            processed_file
-        )
-
-        # Make sure dates are datetime
-        df["InvoiceDate"] = pd.to_datetime(
-            df["InvoiceDate"],
-            errors="coerce"
+        df = _read_processed_dataset(
+            processed_file,
+            usecols=[
+                "Invoice",
+                "InvoiceDate",
+                "Revenue",
+                "Quantity",
+                "Customer ID",
+            ],
         )
 
         # ----------------------------------------------------
@@ -718,11 +744,17 @@ def get_analytics(dataset_id: str):
     """
     try:
         processed_file = get_processed_dataset_path(dataset_id)
-        df = pd.read_csv(processed_file)
 
-        df["InvoiceDate"] = pd.to_datetime(
-            df["InvoiceDate"],
-            errors="coerce",
+        df = _read_processed_dataset(
+            processed_file,
+            usecols=[
+                "Invoice",
+                "InvoiceDate",
+                "Revenue",
+                "Quantity",
+                "Customer ID",
+                "Description",
+            ],
         )
 
         df = df.dropna(subset=["InvoiceDate"])
@@ -781,14 +813,16 @@ def get_analytics(dataset_id: str):
         monthly = monthly[["month", "revenue"]].tail(18)
 
         # Top products.
-        product_df = df.copy()
-        product_df["Description"] = product_df["Description"].fillna("Unknown product")
-        top = (
-            product_df.groupby("Description")["Revenue"]
+        product_revenue = (
+            df.assign(
+                Description=df["Description"].fillna("Unknown product")
+            )
+            .groupby("Description")["Revenue"]
             .sum()
-            .sort_values(ascending=False)
-            .head(5)
+            .nlargest(5)
         )
+
+        top = product_revenue
 
         top_products = [
             {
@@ -845,7 +879,7 @@ def forecast_dataset(dataset_id: str):
     validate_dataset_id(dataset_id)
     dataset_path = get_processed_dataset_path(dataset_id)
 
-    df = pd.read_csv(dataset_path)
+    df = _read_processed_dataset(dataset_path)
     daily_metrics = calculate_daily_metrics(df)
 
     forecasting_data = prepare_forecasting_features(

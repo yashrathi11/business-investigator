@@ -1,5 +1,6 @@
 import pandas as pd
 
+
 # ============================================================
 # REVENUE
 # ============================================================
@@ -49,29 +50,36 @@ def calculate_customer_metrics(df):
         revenue_per_customer
     """
 
-    customer_df = df[
-        df["Customer ID"].notna()
-    ].copy()
+    # Use a filtered view instead of making a full DataFrame copy.
+    customer_mask = df["Customer ID"].notna()
 
-    total_customers = customer_df["Customer ID"].nunique()
+    customer_data = df.loc[
+        customer_mask,
+        [
+            "Customer ID",
+            "Revenue",
+            "Invoice",
+            "InvoiceDate",
+        ],
+    ]
+
+    total_customers = (
+        customer_data["Customer ID"].nunique()
+    )
 
     revenue_per_customer = (
-        customer_df["Revenue"].sum() / total_customers
+        customer_data["Revenue"].sum() / total_customers
         if total_customers > 0
         else 0.0
     )
 
-    # First purchase date for every customer
-    first_purchase = (
-        customer_df
-        .groupby("Customer ID")["InvoiceDate"]
-        .min()
-    )
-
     # Number of unique orders per customer
     order_frequency = (
-        customer_df
-        .groupby("Customer ID")["Invoice"]
+        customer_data
+        .groupby(
+            "Customer ID",
+            observed=True,
+        )["Invoice"]
         .nunique()
     )
 
@@ -118,34 +126,36 @@ def calculate_product_metrics(df, top_n=10):
     product_metrics = (
         df
         .groupby(
-            ["StockCode", "Description"],
-            dropna=False
+            [
+                "StockCode",
+                "Description",
+            ],
+            dropna=False,
+            observed=True,
         )
         .agg(
             revenue=("Revenue", "sum"),
             units_sold=("Quantity", "sum"),
-            orders=("Invoice", "nunique")
+            orders=("Invoice", "nunique"),
         )
         .reset_index()
     )
 
     top_products_by_revenue = (
         product_metrics
-        .sort_values(
+        .nlargest(
+            top_n,
             "revenue",
-            ascending=False
         )
-        .head(top_n)
         .reset_index(drop=True)
     )
 
     top_products_by_units = (
         product_metrics
-        .sort_values(
+        .nlargest(
+            top_n,
             "units_sold",
-            ascending=False
         )
-        .head(top_n)
         .reset_index(drop=True)
     )
 
@@ -190,23 +200,24 @@ def calculate_daily_metrics(df):
     Units sold is defined as net quantity:
     positive sales quantity minus returned quantity.
     """
-    df = df.copy()
 
-    df["InvoiceDate"] = pd.to_datetime(
+    # Convert the existing column without creating
+    # another full DataFrame.
+    invoice_dates = pd.to_datetime(
         df["InvoiceDate"],
-        errors="coerce"
+        errors="coerce",
     )
 
     daily = (
         df
         .groupby(
-            df["InvoiceDate"].dt.date
+            invoice_dates.dt.date
         )
         .agg(
             revenue=("Revenue", "sum"),
             orders=("Invoice", "nunique"),
             customers=("Customer ID", "nunique"),
-            units_sold=("Quantity", "sum")
+            units_sold=("Quantity", "sum"),
         )
         .reset_index()
     )
@@ -228,30 +239,30 @@ def calculate_monthly_metrics(df):
     Calculate monthly business metrics.
     """
 
-    temp = df.copy()
-
-    temp["InvoiceDate"] = pd.to_datetime(
-        temp["InvoiceDate"],
-        errors="coerce"
+    invoice_dates = pd.to_datetime(
+        df["InvoiceDate"],
+        errors="coerce",
     )
 
-    temp["month"] = (
-        temp["InvoiceDate"]
+    month_values = (
+        invoice_dates
         .dt.to_period("M")
         .astype(str)
     )
 
     monthly = (
-        temp
-        .groupby("month")
+        df
+        .groupby(
+            month_values
+        )
         .agg(
             revenue=("Revenue", "sum"),
             orders=("Invoice", "nunique"),
             customers=("Customer ID", "nunique"),
             units_sold=(
                 "Quantity",
-                lambda x: x[x > 0].sum()
-            )
+                lambda x: x[x > 0].sum(),
+            ),
         )
         .reset_index()
     )
