@@ -16,7 +16,6 @@ def load_raw_data(file_path: str) -> pd.DataFrame:
     dataframes = []
 
     for sheet_name in excel_file.sheet_names:
-
         sheet_df = pd.read_excel(
             file_path,
             sheet_name=sheet_name
@@ -36,14 +35,31 @@ def load_raw_data(file_path: str) -> pd.DataFrame:
 # 2. CLEAN TRANSACTIONS
 # ============================================================
 
-def clean_transactions(df: pd.DataFrame) -> pd.DataFrame:
+def clean_transactions(
+    df: pd.DataFrame,
+    copy: bool = True,
+) -> pd.DataFrame:
     """
     Clean raw transaction data according to the
     project's business rules.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Input transaction DataFrame.
+
+    copy : bool, default=True
+        Whether to create a copy of the input DataFrame.
+        Upload processing uses copy=False to reduce
+        peak memory usage.
     """
 
-    # Work on a copy
-    df = df.copy()
+    # --------------------------------------------------------
+    # Optional copy
+    # --------------------------------------------------------
+
+    if copy:
+        df = df.copy()
 
     # --------------------------------------------------------
     # Step 1: Standardize data types
@@ -68,7 +84,9 @@ def clean_transactions(df: pd.DataFrame) -> pd.DataFrame:
     # Step 2: Remove exact duplicate rows
     # --------------------------------------------------------
 
-    df = df.drop_duplicates().copy()
+    df.drop_duplicates(
+        inplace=True
+    )
 
     # --------------------------------------------------------
     # Step 3: Identify cancelled transactions
@@ -104,9 +122,6 @@ def clean_transactions(df: pd.DataFrame) -> pd.DataFrame:
 
     # --------------------------------------------------------
     # Step 6: Identify bad-debt accounting adjustments
-    #
-    # These are accounting adjustments, not normal product
-    # sales, so they should not be included in sales revenue.
     # --------------------------------------------------------
 
     df["is_bad_debt"] = (
@@ -122,7 +137,7 @@ def clean_transactions(df: pd.DataFrame) -> pd.DataFrame:
     # Step 7: Remove cancelled transactions
     # --------------------------------------------------------
 
-    df = df[
+    df = df.loc[
         ~df["is_cancelled"]
     ].copy()
 
@@ -130,7 +145,7 @@ def clean_transactions(df: pd.DataFrame) -> pd.DataFrame:
     # Step 8: Remove bad-debt accounting adjustments
     # --------------------------------------------------------
 
-    df = df[
+    df = df.loc[
         ~df["is_bad_debt"]
     ].copy()
 
@@ -161,10 +176,6 @@ def clean_transactions(df: pd.DataFrame) -> pd.DataFrame:
 # ============================================================
 
 if __name__ == "__main__":
-
-    # --------------------------------------------------------
-    # File paths
-    # --------------------------------------------------------
 
     input_file = "data/raw/online_retail_II.xlsx"
 

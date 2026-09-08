@@ -30,6 +30,10 @@ def load_uploaded_file(file_path: str) -> pd.DataFrame:
             "Allowed formats: CSV, XLSX, XLS."
         )
 
+    # --------------------------------------------------------
+    # CSV memory optimization
+    # --------------------------------------------------------
+
     if path.suffix.lower() == ".csv":
         return pd.read_csv(
             path,
@@ -39,6 +43,10 @@ def load_uploaded_file(file_path: str) -> pd.DataFrame:
             },
             parse_dates=["InvoiceDate"],
         )
+
+    # --------------------------------------------------------
+    # Excel files
+    # --------------------------------------------------------
 
     return load_raw_data(str(path))
 
@@ -52,6 +60,10 @@ def process_uploaded_file(
     """
 
     df = load_uploaded_file(file_path)
+
+    # --------------------------------------------------------
+    # Validate required columns
+    # --------------------------------------------------------
 
     required_columns = {
         "Invoice",
@@ -72,7 +84,18 @@ def process_uploaded_file(
             f"{sorted(missing_columns)}"
         )
 
-    clean_df = clean_transactions(df)
+    # --------------------------------------------------------
+    # Clean without creating the initial full DataFrame copy
+    # --------------------------------------------------------
+
+    clean_df = clean_transactions(
+        df,
+        copy=False,
+    )
+
+    # --------------------------------------------------------
+    # Save processed dataset
+    # --------------------------------------------------------
 
     output = Path(output_path)
 
@@ -85,6 +108,10 @@ def process_uploaded_file(
         output,
         index=False,
     )
+
+    # --------------------------------------------------------
+    # Return processing metadata
+    # --------------------------------------------------------
 
     return {
         "input_rows": int(len(df)),
