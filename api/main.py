@@ -66,6 +66,8 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
         "https://business-investigator.vercel.app",
     ],
     allow_credentials=True,
@@ -75,6 +77,9 @@ app.add_middleware(
 
 UPLOAD_DIR = Path("data/uploads")
 PROCESSED_DIR = Path("data/processed")
+
+DEMO_DATASET_ID = "00000000000000000000000000000001"
+DEMO_DATASET_PATH = Path("data/demo/transactions_demo.csv")
 
 
 def _read_processed_dataset(path: Path, usecols=None):
@@ -159,6 +164,24 @@ def _discover_processed_datasets():
     visible without requiring a re-upload.
     """
     datasets = _load_dataset_registry()
+    if DEMO_DATASET_PATH.exists():
+        demo_metadata = {
+            "dataset_id": DEMO_DATASET_ID,
+            "filename": "Demo business dataset",
+            "input_rows": 100000,
+            "output_rows": 100000,
+            "total_revenue": 2011406.53,
+            "created_at": "2026-09-08T00:00:00+00:00",
+            "source": "demo",
+        }
+
+        datasets = [
+            item
+            for item in datasets
+            if item.get("dataset_id") != DEMO_DATASET_ID
+        ]
+
+        datasets.insert(0, demo_metadata)
     known_ids = {
         str(item.get("dataset_id"))
         for item in datasets
@@ -279,11 +302,23 @@ def validate_dataset_id(dataset_id: str):
 
 def get_processed_dataset_path(dataset_id: str):
     """
-    Return processed dataset path after validating
-    that the dataset exists.
+    Return the dataset path after validating that the dataset exists.
+
+    The fixed demo dataset lives under data/demo and is tracked in
+    source control, so it survives Render restarts. Uploaded datasets
+    continue to use data/processed.
     """
 
     validate_dataset_id(dataset_id)
+
+    if dataset_id == DEMO_DATASET_ID:
+        if not DEMO_DATASET_PATH.exists():
+            raise HTTPException(
+                status_code=404,
+                detail=f"Demo dataset not found: {dataset_id}",
+            )
+
+        return DEMO_DATASET_PATH
 
     processed_file = (
         PROCESSED_DIR
@@ -475,20 +510,33 @@ def get_dataset(dataset_id: str):
 
     try:
         stat = processed_file.stat()
-        fallback = {
-            "dataset_id": dataset_id,
-            "filename": "Processed dataset",
-            "input_rows": None,
-            "output_rows": None,
-            "total_revenue": None,
-            "created_at": datetime.fromtimestamp(
-                stat.st_mtime,
-                tz=timezone.utc,
-            ).isoformat(),
-            "source": "existing",
-        }
 
-        _upsert_dataset_metadata(fallback)
+        if dataset_id == DEMO_DATASET_ID:
+            fallback = {
+                "dataset_id": DEMO_DATASET_ID,
+                "filename": "Demo business dataset",
+                "input_rows": 100000,
+                "output_rows": 100000,
+                "total_revenue": 2011406.53,
+                "created_at": "2026-09-08T00:00:00+00:00",
+                "source": "demo",
+            }
+        else:
+            fallback = {
+                "dataset_id": dataset_id,
+                "filename": "Processed dataset",
+                "input_rows": None,
+                "output_rows": None,
+                "total_revenue": None,
+                "created_at": datetime.fromtimestamp(
+                    stat.st_mtime,
+                    tz=timezone.utc,
+                ).isoformat(),
+                "source": "existing",
+            }
+
+        if dataset_id != DEMO_DATASET_ID:
+            _upsert_dataset_metadata(fallback)
 
         return sanitize_for_json(
             {
